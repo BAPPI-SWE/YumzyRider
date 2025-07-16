@@ -89,11 +89,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("create_profile") {
-                        val userId = Firebase.auth.currentUser?.uid
-                        if (userId == null) {
-                            navController.popBackStack()
-                            return@composable
-                        }
+                        val userId = Firebase.auth.currentUser?.uid ?: return@composable
                         RiderProfileScreen(
                             onSaveProfile = { phone, vehicle, servesDaffodil, servesNsu ->
                                 val serviceableLocations = mutableListOf<String>()
@@ -105,7 +101,7 @@ class MainActivity : ComponentActivity() {
                                     "phone" to phone,
                                     "vehicle" to vehicle,
                                     "serviceableLocations" to serviceableLocations,
-                                    "isAvailable" to false, // Default to offline
+                                    "isAvailable" to false,
                                     "uid" to userId
                                 )
                                 Firebase.firestore.collection("riders").document(userId)
@@ -117,7 +113,23 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("dashboard") {
-                        RiderDashboardScreen()
+                        RiderDashboardScreen(
+                            onAcceptOrder = { orderId ->
+                                val riderId = Firebase.auth.currentUser?.uid
+                                val riderName = Firebase.auth.currentUser?.displayName
+                                if (riderId != null) {
+                                    Firebase.firestore.collection("orders").document(orderId)
+                                        .update(mapOf(
+                                            "orderStatus" to "Accepted",
+                                            "riderId" to riderId,
+                                            "riderName" to riderName
+                                        ))
+                                        .addOnSuccessListener {
+                                            Toast.makeText(applicationContext, "Order Accepted!", Toast.LENGTH_SHORT).show()
+                                        }
+                                }
+                            }
+                        )
                     }
                 }
             }

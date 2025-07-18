@@ -13,15 +13,19 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class RiderProfile(
     val name: String = "",
     val serviceableLocations: List<String> = emptyList()
 )
 
+// UPDATED: OrderRequest now holds the createdAt timestamp
 data class OrderRequest(
     val id: String = "",
     val restaurantName: String = "",
@@ -29,7 +33,8 @@ data class OrderRequest(
     val items: List<Map<String, Any>> = emptyList(),
     val fullAddress: String = "",
     val userPhone: String = "",
-    val userBaseLocation: String = ""
+    val userBaseLocation: String = "",
+    val createdAt: Timestamp = Timestamp.now() // New field
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,9 +78,10 @@ fun RiderDashboardScreen(
                                         items = orderDoc.get("items") as? List<Map<String, Any>> ?: emptyList(),
                                         fullAddress = address,
                                         userPhone = orderDoc.getString("userPhone") ?: "Not provided",
-                                        userBaseLocation = orderDoc.getString("userBaseLocation") ?: ""
+                                        userBaseLocation = orderDoc.getString("userBaseLocation") ?: "",
+                                        createdAt = orderDoc.getTimestamp("createdAt") ?: Timestamp.now() // Fetch the timestamp
                                     )
-                                }
+                                }.sortedByDescending { it.createdAt } // Show newest orders first
                             }
                         }
                 }
@@ -143,11 +149,16 @@ fun RiderDashboardScreen(
     }
 }
 
+// UPDATED: The OrderRequestCard now shows the time
 @Composable
 fun OrderRequestCard(order: OrderRequest, onAccept: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(order.restaurantName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(order.restaurantName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                // Display the formatted time
+                Text(formatDate(order.createdAt), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            }
             Divider()
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Phone, contentDescription = "Phone", modifier = Modifier.size(16.dp))
@@ -169,4 +180,10 @@ fun OrderRequestCard(order: OrderRequest, onAccept: () -> Unit) {
             }
         }
     }
+}
+
+// NEW: Helper function to format the timestamp
+fun formatDate(timestamp: Timestamp): String {
+    val sdf = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
+    return sdf.format(timestamp.toDate())
 }

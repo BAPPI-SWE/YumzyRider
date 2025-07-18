@@ -3,6 +3,8 @@ package com.yumzy.rider
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +28,8 @@ data class OrderRequest(
     val totalPrice: Double = 0.0,
     val items: List<Map<String, Any>> = emptyList(),
     val fullAddress: String = "",
-    val userBaseLocation: String = "" // Keep this for filtering
+    val userPhone: String = "",
+    val userBaseLocation: String = ""
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +61,6 @@ fun RiderDashboardScreen(
                     db.collection("orders")
                         .whereEqualTo("orderStatus", "Pending")
                         .whereEqualTo("orderType", "Instant")
-                        // Use whereIn for more robust location matching
                         .whereIn("userBaseLocation", profile.serviceableLocations)
                         .addSnapshotListener { snapshot, _ ->
                             snapshot?.let {
@@ -70,6 +72,7 @@ fun RiderDashboardScreen(
                                         totalPrice = orderDoc.getDouble("totalPrice") ?: 0.0,
                                         items = orderDoc.get("items") as? List<Map<String, Any>> ?: emptyList(),
                                         fullAddress = address,
+                                        userPhone = orderDoc.getString("userPhone") ?: "Not provided",
                                         userBaseLocation = orderDoc.getString("userBaseLocation") ?: ""
                                     )
                                 }
@@ -146,6 +149,11 @@ fun OrderRequestCard(order: OrderRequest, onAccept: () -> Unit) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(order.restaurantName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Divider()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Phone, contentDescription = "Phone", modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(order.userPhone)
+            }
             Text("Deliver to:", fontWeight = FontWeight.SemiBold)
             Text(order.fullAddress)
             Divider()

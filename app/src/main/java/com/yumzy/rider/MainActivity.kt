@@ -93,8 +93,8 @@ class MainActivity : ComponentActivity() {
                         RiderProfileScreen(
                             onSaveProfile = { phone, vehicle, servesDaffodil, servesNsu ->
                                 val serviceableLocations = mutableListOf<String>()
-                                if(servesDaffodil) serviceableLocations.add("Daffodil Smart City")
-                                if(servesNsu) serviceableLocations.add("North South University")
+                                if (servesDaffodil) serviceableLocations.add("Daffodil Smart City")
+                                if (servesNsu) serviceableLocations.add("North South University")
 
                                 val riderProfile = hashMapOf(
                                     "name" to (Firebase.auth.currentUser?.displayName ?: "N/A"),
@@ -118,6 +118,7 @@ class MainActivity : ComponentActivity() {
                                 val riderId = Firebase.auth.currentUser?.uid
                                 val riderName = Firebase.auth.currentUser?.displayName
                                 if (riderId != null) {
+                                    // Update the order document with the rider's info
                                     Firebase.firestore.collection("orders").document(orderId)
                                         .update(mapOf(
                                             "orderStatus" to "Accepted",
@@ -135,6 +136,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     private fun checkRiderProfile(userId: String, navController: NavController) {
         Firebase.firestore.collection("riders").document(userId).get()
             .addOnSuccessListener { document ->

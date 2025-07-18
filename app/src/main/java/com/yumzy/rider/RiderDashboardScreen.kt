@@ -11,7 +11,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -24,8 +23,10 @@ data class RiderProfile(
 data class OrderRequest(
     val id: String = "",
     val restaurantName: String = "",
-    val userSubLocation: String = "",
-    val totalPrice: Double = 0.0
+    val totalPrice: Double = 0.0,
+    val items: List<Map<String, Any>> = emptyList(),
+    val fullAddress: String = "",
+    val userBaseLocation: String = "" // Keep this for filtering
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,20 +54,23 @@ fun RiderDashboardScreen(
                 )
                 riderProfile = profile
 
-                // Only start listening for orders if the rider has serviceable locations
                 if (profile.serviceableLocations.isNotEmpty()) {
                     db.collection("orders")
                         .whereEqualTo("orderStatus", "Pending")
                         .whereEqualTo("orderType", "Instant")
+                        // Use whereIn for more robust location matching
                         .whereIn("userBaseLocation", profile.serviceableLocations)
                         .addSnapshotListener { snapshot, _ ->
                             snapshot?.let {
                                 availableOrders = it.documents.mapNotNull { orderDoc ->
+                                    val address = "Building: ${orderDoc.getString("building")}, Floor: ${orderDoc.getString("floor")}, Room: ${orderDoc.getString("room")}\n${orderDoc.getString("userSubLocation")}, ${orderDoc.getString("userBaseLocation")}"
                                     OrderRequest(
                                         id = orderDoc.id,
                                         restaurantName = orderDoc.getString("restaurantName") ?: "N/A",
-                                        userSubLocation = orderDoc.getString("userSubLocation") ?: "N/A",
-                                        totalPrice = orderDoc.getDouble("totalPrice") ?: 0.0
+                                        totalPrice = orderDoc.getDouble("totalPrice") ?: 0.0,
+                                        items = orderDoc.get("items") as? List<Map<String, Any>> ?: emptyList(),
+                                        fullAddress = address,
+                                        userBaseLocation = orderDoc.getString("userBaseLocation") ?: ""
                                     )
                                 }
                             }
@@ -96,10 +100,8 @@ fun RiderDashboardScreen(
         }
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(4.dp)) {
                 Row(
@@ -109,32 +111,21 @@ fun RiderDashboardScreen(
                 ) {
                     Column {
                         Text(text = "Welcome, ${riderProfile?.name ?: "..."}")
-                        Text(
-                            text = if (isAvailable) "You are Online" else "You are Offline",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isAvailable) Color(0xFF2E7D32) else Color.Gray
-                        )
+                        Text(if (isAvailable) "You are Online" else "You are Offline",
+                            style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                            color = if (isAvailable) Color(0xFF2E7D32) else Color.Gray)
                     }
                     if(isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    else Switch(
-                        checked = isAvailable,
-                        onCheckedChange = { updateAvailability(it) },
-                        modifier = Modifier.scale(1.2f)
-                    )
+                    else Switch(checked = isAvailable, onCheckedChange = { updateAvailability(it) }, modifier = Modifier.scale(1.2f))
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
             Text("Available Deliveries", style = MaterialTheme.typography.headlineSmall)
-            Spacer(modifier = Modifier.height(8.dp))
 
-            if (isLoading) {
-                // Don't show anything while the initial profile loads
-            } else if (!isAvailable) {
+            if (!isAvailable) {
                 Text("You are offline. Go online to see new orders.", color = Color.Gray)
             } else if (availableOrders.isEmpty()) {
-                Text("No new orders right now. We'll notify you!", color = Color.Gray)
+                Text("No new orders right now.", color = Color.Gray)
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(availableOrders) { order ->
@@ -154,8 +145,16 @@ fun OrderRequestCard(order: OrderRequest, onAccept: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(order.restaurantName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Deliver to: ${order.userSubLocation}")
-            Text("Order Total: ৳${order.totalPrice}")
+            Divider()
+            Text("Deliver to:", fontWeight = FontWeight.SemiBold)
+            Text(order.fullAddress)
+            Divider()
+            Text("Items:", fontWeight = FontWeight.SemiBold)
+            order.items.forEach { item ->
+                Text("- ${item["quantity"]} x ${item["itemName"]}")
+            }
+            Divider()
+            Text("Order Total: ৳${order.totalPrice}", fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             Button(onClick = onAccept, modifier = Modifier.fillMaxWidth()) {
                 Text("Accept Order")

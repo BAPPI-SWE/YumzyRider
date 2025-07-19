@@ -23,6 +23,7 @@ import com.google.firebase.ktx.Firebase
 import com.yumzy.rider.auth.AuthScreen
 import com.yumzy.rider.auth.AuthViewModel
 import com.yumzy.rider.auth.GoogleAuthUiClient
+import com.yumzy.rider.navigation.MainScreen
 import com.yumzy.rider.ui.theme.YumzyRiderTheme
 import kotlinx.coroutines.launch
 
@@ -41,10 +42,12 @@ class MainActivity : ComponentActivity() {
             YumzyRiderTheme {
                 val navController = rememberNavController()
                 NavHost(navController = navController, startDestination = "auth") {
+
                     composable("auth") {
                         val viewModel = viewModel<AuthViewModel>()
                         val state by viewModel.state.collectAsStateWithLifecycle()
 
+                        // Check if rider is already signed in on app start
                         LaunchedEffect(key1 = Unit) {
                             val currentUser = googleAuthUiClient.getSignedInUser()
                             if (currentUser != null) {
@@ -65,6 +68,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
+                        // Effect to check profile after a *new* successful sign in
                         LaunchedEffect(key1 = state.isSignInSuccessful) {
                             if (state.isSignInSuccessful) {
                                 val userId = googleAuthUiClient.getSignedInUser()?.userId
@@ -88,8 +92,13 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
+
                     composable("create_profile") {
-                        val userId = Firebase.auth.currentUser?.uid ?: return@composable
+                        val userId = Firebase.auth.currentUser?.uid
+                        if (userId == null) {
+                            navController.popBackStack()
+                            return@composable
+                        }
                         RiderProfileScreen(
                             onSaveProfile = { phone, vehicle, servesDaffodil, servesNsu ->
                                 val serviceableLocations = mutableListOf<String>()
@@ -101,24 +110,24 @@ class MainActivity : ComponentActivity() {
                                     "phone" to phone,
                                     "vehicle" to vehicle,
                                     "serviceableLocations" to serviceableLocations,
-                                    "isAvailable" to false,
+                                    "isAvailable" to false, // Default to offline
                                     "uid" to userId
                                 )
                                 Firebase.firestore.collection("riders").document(userId)
                                     .set(riderProfile)
                                     .addOnSuccessListener {
-                                        navController.navigate("dashboard") { popUpTo("auth") { inclusive = true } }
+                                        navController.navigate("main") { popUpTo("auth") { inclusive = true } }
                                     }
                             }
                         )
                     }
-                    composable("dashboard") {
-                        RiderDashboardScreen(
+
+                    composable("main") {
+                        MainScreen(
                             onAcceptOrder = { orderId ->
                                 val riderId = Firebase.auth.currentUser?.uid
                                 val riderName = Firebase.auth.currentUser?.displayName
                                 if (riderId != null) {
-                                    // Update the order document with the rider's info
                                     Firebase.firestore.collection("orders").document(orderId)
                                         .update(mapOf(
                                             "orderStatus" to "Accepted",
@@ -129,6 +138,13 @@ class MainActivity : ComponentActivity() {
                                             Toast.makeText(applicationContext, "Order Accepted!", Toast.LENGTH_SHORT).show()
                                         }
                                 }
+                            },
+                            onUpdateOrderStatus = { orderId, newStatus ->
+                                Firebase.firestore.collection("orders").document(orderId)
+                                    .update("orderStatus", newStatus)
+                                    .addOnSuccessListener {
+                                        Toast.makeText(applicationContext, "Order marked as $newStatus", Toast.LENGTH_SHORT).show()
+                                    }
                             }
                         )
                     }
@@ -141,7 +157,7 @@ class MainActivity : ComponentActivity() {
         Firebase.firestore.collection("riders").document(userId).get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
-                    navController.navigate("dashboard") { popUpTo("auth") { inclusive = true } }
+                    navController.navigate("main") { popUpTo("auth") { inclusive = true } }
                 } else {
                     navController.navigate("create_profile") { popUpTo("auth") { inclusive = true } }
                 }

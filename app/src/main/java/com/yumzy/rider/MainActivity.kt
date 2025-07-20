@@ -23,6 +23,8 @@ import com.google.firebase.ktx.Firebase
 import com.yumzy.rider.auth.AuthScreen
 import com.yumzy.rider.auth.AuthViewModel
 import com.yumzy.rider.auth.GoogleAuthUiClient
+import com.yumzy.rider.features.profile.RiderAccountScreen
+import com.yumzy.rider.features.profile.RiderEditProfileScreen
 import com.yumzy.rider.navigation.MainScreen
 import com.yumzy.rider.ui.theme.YumzyRiderTheme
 import kotlinx.coroutines.launch
@@ -42,12 +44,10 @@ class MainActivity : ComponentActivity() {
             YumzyRiderTheme {
                 val navController = rememberNavController()
                 NavHost(navController = navController, startDestination = "auth") {
-
                     composable("auth") {
                         val viewModel = viewModel<AuthViewModel>()
                         val state by viewModel.state.collectAsStateWithLifecycle()
 
-                        // Check if rider is already signed in on app start
                         LaunchedEffect(key1 = Unit) {
                             val currentUser = googleAuthUiClient.getSignedInUser()
                             if (currentUser != null) {
@@ -68,7 +68,6 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
-                        // Effect to check profile after a *new* successful sign in
                         LaunchedEffect(key1 = state.isSignInSuccessful) {
                             if (state.isSignInSuccessful) {
                                 val userId = googleAuthUiClient.getSignedInUser()?.userId
@@ -92,15 +91,10 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-
                     composable("create_profile") {
-                        val userId = Firebase.auth.currentUser?.uid
-                        if (userId == null) {
-                            navController.popBackStack()
-                            return@composable
-                        }
                         RiderProfileScreen(
                             onSaveProfile = { phone, vehicle, servesDaffodil, servesNsu ->
+                                val userId = Firebase.auth.currentUser?.uid ?: return@RiderProfileScreen
                                 val serviceableLocations = mutableListOf<String>()
                                 if (servesDaffodil) serviceableLocations.add("Daffodil Smart City")
                                 if (servesNsu) serviceableLocations.add("North South University")
@@ -110,7 +104,7 @@ class MainActivity : ComponentActivity() {
                                     "phone" to phone,
                                     "vehicle" to vehicle,
                                     "serviceableLocations" to serviceableLocations,
-                                    "isAvailable" to false, // Default to offline
+                                    "isAvailable" to false,
                                     "uid" to userId
                                 )
                                 Firebase.firestore.collection("riders").document(userId)
@@ -121,7 +115,6 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-
                     composable("main") {
                         MainScreen(
                             onAcceptOrder = { orderId ->
@@ -145,6 +138,50 @@ class MainActivity : ComponentActivity() {
                                     .addOnSuccessListener {
                                         Toast.makeText(applicationContext, "Order marked as $newStatus", Toast.LENGTH_SHORT).show()
                                     }
+                            },
+                            onSignOut = {
+                                lifecycleScope.launch {
+                                    googleAuthUiClient.signOut()
+                                    navController.navigate("auth") {
+                                        popUpTo(navController.graph.id) { inclusive = true }
+                                    }
+                                }
+                            },
+                            onNavigateToEditProfile = {
+                                navController.navigate("edit_profile")
+                            }
+                        )
+                    }
+                    composable("edit_profile") {
+                        RiderEditProfileScreen(
+                            onBackClicked = { navController.popBackStack() },
+                            onSaveChanges = { phone, vehicle, serviceableLocations ->
+                                val userId = Firebase.auth.currentUser?.uid ?: return@RiderEditProfileScreen
+                                val updates = mapOf(
+                                    "phone" to phone,
+                                    "vehicle" to vehicle,
+                                    "serviceableLocations" to serviceableLocations
+                                )
+                                Firebase.firestore.collection("riders").document(userId)
+                                    .update(updates)
+                                    .addOnSuccessListener {
+                                        Toast.makeText(applicationContext, "Profile Updated", Toast.LENGTH_SHORT).show()
+                                        navController.popBackStack()
+                                    }
+                            }
+                        )
+                    }
+                    composable("account") {
+                        RiderAccountScreen(
+                            onNavigateToEditProfile = { navController.navigate("edit_profile") },
+                            onBackClicked = { navController.popBackStack() },
+                            onSignOut = {
+                                lifecycleScope.launch {
+                                    googleAuthUiClient.signOut()
+                                    navController.navigate("auth") {
+                                        popUpTo(navController.graph.id) { inclusive = true }
+                                    }
+                                }
                             }
                         )
                     }

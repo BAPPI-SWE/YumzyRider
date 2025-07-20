@@ -2,6 +2,7 @@ package com.yumzy.rider.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Moped
 import androidx.compose.material3.*
@@ -15,23 +16,28 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.yumzy.rider.features.profile.RiderAccountScreen
 import com.yumzy.rider.main.MyDeliveriesScreen
 import com.yumzy.rider.main.NewOrdersScreen
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     data object NewOrders : Screen("new_orders", "New Orders", Icons.Default.List)
     data object MyDeliveries : Screen("my_deliveries", "My Deliveries", Icons.Default.Moped)
+    data object Account : Screen("account", "Account", Icons.Default.AccountCircle)
 }
 
 @Composable
 fun MainScreen(
     onAcceptOrder: (orderId: String) -> Unit,
-    onUpdateOrderStatus: (orderId: String, newStatus: String) -> Unit
+    onUpdateOrderStatus: (orderId: String, newStatus: String) -> Unit,
+    onNavigateToEditProfile: () -> Unit,
+    onSignOut: () -> Unit
 ) {
     val navController = rememberNavController()
     val items = listOf(
         Screen.NewOrders,
         Screen.MyDeliveries,
+        Screen.Account
     )
 
     Scaffold(
@@ -62,6 +68,13 @@ fun MainScreen(
             }
             composable(Screen.MyDeliveries.route) {
                 MyDeliveriesScreen(onUpdateOrderStatus = onUpdateOrderStatus)
+            }
+            composable(Screen.Account.route) {
+                RiderAccountScreen(
+                    onNavigateToEditProfile = onNavigateToEditProfile,
+                    onSignOut = onSignOut,
+                    onBackClicked = { /* This screen is a main tab, no back action needed */ }
+                )
             }
         }
     }

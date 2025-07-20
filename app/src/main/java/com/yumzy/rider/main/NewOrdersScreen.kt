@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -19,7 +20,7 @@ import com.google.firebase.ktx.Firebase
 import java.text.SimpleDateFormat
 import java.util.*
 
-// --- Data classes are defined locally inside this file ---
+// --- DATA CLASSES ---
 data class RiderProfile(
     val name: String = "",
     val serviceableLocations: List<String> = emptyList()
@@ -36,34 +37,25 @@ data class OrderRequest(
     val createdAt: Timestamp = Timestamp.now()
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewOrdersScreen(
-    onAcceptOrder: (orderId: String) -> Unit
-) {
+fun NewOrdersScreen(onAcceptOrder: (orderId: String) -> Unit) {
     var riderProfile by remember { mutableStateOf<RiderProfile?>(null) }
     var availableOrders by remember { mutableStateOf<List<OrderRequest>>(emptyList()) }
+    var isAvailable by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
-    val riderId = Firebase.auth.currentUser?.uid
 
-    LaunchedEffect(key1 = riderId) {
-        if (riderId == null) {
-            isLoading = false
-            return@LaunchedEffect
-        }
-
+    LaunchedEffect(key1 = Unit) {
+        val riderId = Firebase.auth.currentUser?.uid ?: return@LaunchedEffect
         val db = Firebase.firestore
         val riderDocRef = db.collection("riders").document(riderId)
 
-        riderDocRef.get().addOnSuccessListener { doc ->
+        riderDocRef.addSnapshotListener { doc, _ ->
             if (doc != null && doc.exists()) {
-                val profile = RiderProfile(
-                    name = doc.getString("name") ?: "Rider",
-                    serviceableLocations = doc.get("serviceableLocations") as? List<String> ?: emptyList()
-                )
+                val profile = doc.toObject(RiderProfile::class.java)
                 riderProfile = profile
+                isAvailable = doc.getBoolean("isAvailable") ?: false
 
-                if (profile.serviceableLocations.isNotEmpty()) {
+                if (profile?.serviceableLocations?.isNotEmpty() == true) {
                     db.collection("orders")
                         .whereEqualTo("orderStatus", "Pending")
                         .whereEqualTo("orderType", "Instant")
@@ -85,40 +77,54 @@ fun NewOrdersScreen(
         }
     }
 
+    fun updateAvailability(newStatus: Boolean) {
+        val riderId = Firebase.auth.currentUser?.uid ?: return
+        Firebase.firestore.collection("riders").document(riderId).update("isAvailable", newStatus)
+    }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("Welcome, ${riderProfile?.name ?: "..."}")
+                    Text(if (isAvailable) "You are Online" else "You are Offline", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = if (isAvailable) Color(0xFF2E7D32) else Color.Gray)
+                }
+                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                else Switch(checked = isAvailable, onCheckedChange = { updateAvailability(it) }, modifier = Modifier.scale(1.2f))
+            }
+        }
+
         Text("Available Deliveries", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
 
-        if (isLoading) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+        if (!isAvailable) {
+            Text("You are offline. Go online to see new orders.", color = Color.Gray)
         } else if (availableOrders.isEmpty()) {
             Text("No new orders right now.", color = Color.Gray)
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(availableOrders) { order ->
-                    OrderRequestCard(
-                        order = order,
-                        onAccept = { onAcceptOrder(order.id) }
-                    )
+                    OrderRequestCard(order = order, onAccept = { onAcceptOrder(order.id) })
                 }
             }
         }
     }
 }
 
-// --- Helper composables are now defined locally inside this file ---
-
 @Composable
 fun OrderRequestCard(order: OrderRequest, onAccept: () -> Unit) {
+    val sdf = remember { SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()) }
     Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(order.restaurantName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(formatDate(order.createdAt), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                Text(sdf.format(order.createdAt.toDate()), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
             Divider()
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -141,9 +147,4 @@ fun OrderRequestCard(order: OrderRequest, onAccept: () -> Unit) {
             }
         }
     }
-}
-
-private fun formatDate(timestamp: Timestamp): String {
-    val sdf = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
-    return sdf.format(timestamp.toDate())
 }

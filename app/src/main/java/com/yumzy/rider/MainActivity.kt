@@ -93,11 +93,8 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("create_profile") {
                         RiderProfileScreen(
-                            onSaveProfile = { phone, vehicle, servesDaffodil, servesNsu ->
+                            onSaveProfile = { phone, vehicle, serviceableLocations ->
                                 val userId = Firebase.auth.currentUser?.uid ?: return@RiderProfileScreen
-                                val serviceableLocations = mutableListOf<String>()
-                                if (servesDaffodil) serviceableLocations.add("Daffodil Smart City")
-                                if (servesNsu) serviceableLocations.add("North South University")
 
                                 val riderProfile = hashMapOf(
                                     "name" to (Firebase.auth.currentUser?.displayName ?: "N/A"),

@@ -29,6 +29,7 @@ data class RiderProfile(
 data class OrderRequest(
     val id: String = "",
     val restaurantName: String = "",
+    val userName: String = "", // Added user name
     val totalPrice: Double = 0.0,
     val items: List<Map<String, Any>> = emptyList(),
     val fullAddress: String = "",
@@ -83,12 +84,16 @@ fun NewOrdersScreen(onAcceptOrder: (orderId: String) -> Unit) {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(4.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -133,6 +138,7 @@ fun OrderRequestCard(order: OrderRequest, onAccept: () -> Unit) {
                 Text(order.userPhone)
             }
             Text("Deliver to:", fontWeight = FontWeight.SemiBold)
+            Text(order.userName, style = MaterialTheme.typography.bodyLarge) // Display user name
             Text(order.fullAddress)
             Divider()
             Text("Items:", fontWeight = FontWeight.SemiBold)

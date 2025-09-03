@@ -55,7 +55,9 @@ fun MyDeliveriesScreen(onUpdateOrderStatus: (orderId: String, newStatus: String)
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("My Active Deliveries", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -112,8 +114,18 @@ fun ActiveDeliveryCard(order: Order, onStatusUpdate: (orderId: String, newStatus
                     Text("• ${item["quantity"]} x ${item["itemName"]}")
                 }
             }
+            Divider()
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Order Total:", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text("৳${order.totalPrice}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedButton(onClick = { onStatusUpdate(order.id, "On the way") }, modifier = Modifier.weight(1f)) {
@@ -130,7 +142,9 @@ fun ActiveDeliveryCard(order: Order, onStatusUpdate: (orderId: String, newStatus
 @Composable
 fun InfoRow(icon: ImageVector, title: String, primaryText: String, secondaryText: String? = null) {
     Row(verticalAlignment = Alignment.Top) {
-        Icon(imageVector = icon, contentDescription = title, modifier = Modifier.padding(top = 4.dp).size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(imageVector = icon, contentDescription = title, modifier = Modifier
+            .padding(top = 4.dp)
+            .size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.width(16.dp))
         Column {
             Text(title, style = MaterialTheme.typography.labelMedium, color = Color.Gray)

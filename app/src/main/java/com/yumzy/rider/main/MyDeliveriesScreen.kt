@@ -1,9 +1,14 @@
 package com.yumzy.rider.main
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Storefront
@@ -13,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.firebase.Timestamp
@@ -78,6 +84,8 @@ fun MyDeliveriesScreen(onUpdateOrderStatus: (orderId: String, newStatus: String)
 @Composable
 fun ActiveDeliveryCard(order: Order, onStatusUpdate: (orderId: String, newStatus: String) -> Unit) {
     val sdf = remember { SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()) }
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(4.dp)
@@ -102,11 +110,46 @@ fun ActiveDeliveryCard(order: Order, onStatusUpdate: (orderId: String, newStatus
                 primaryText = order.userName,
                 secondaryText = order.fullAddress
             )
-            InfoRow(
-                icon = Icons.Default.Phone,
-                title = "CONTACT",
-                primaryText = order.userPhone
-            )
+            // Custom Row for Contact Info with action buttons
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Phone, contentDescription = "Contact",
+                    modifier = Modifier.padding(top = 4.dp).size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("CONTACT", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                    Text(order.userPhone, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                }
+
+                // Call Button
+                IconButton(onClick = {
+                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${order.userPhone}"))
+                    context.startActivity(intent)
+                }) {
+                    Icon(Icons.Default.Call, contentDescription = "Call User", tint = MaterialTheme.colorScheme.primary)
+                }
+
+                // WhatsApp Button
+                IconButton(onClick = {
+                    try {
+                        var formattedNumber = order.userPhone.replace(Regex("[^0-9+]"), "")
+                        if (formattedNumber.startsWith("01") && formattedNumber.length == 11) {
+                            formattedNumber = "+880${formattedNumber.substring(1)}"
+                        }
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            data = Uri.parse("https://api.whatsapp.com/send?phone=$formattedNumber")
+                            setPackage("com.whatsapp")
+                        }
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "WhatsApp is not installed.", Toast.LENGTH_SHORT).show()
+                    }
+                }) {
+                    Icon(Icons.Default.Chat, contentDescription = "Message on WhatsApp", tint = Color(0xFF25D366))
+                }
+            }
             Divider()
             Text("Items:", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Column(modifier = Modifier.padding(start = 16.dp)) {

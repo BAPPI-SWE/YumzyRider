@@ -5,11 +5,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.ktx.auth
@@ -86,7 +90,7 @@ fun DeliveryHistoryScreen(onBackClicked: () -> Unit) {
 }
 
 /**
- * A card composable to display information about a single completed delivery.
+ * A card composable to display detailed information about a single completed delivery.
  */
 @Composable
 fun CompletedDeliveryCard(order: Order) {
@@ -94,48 +98,57 @@ fun CompletedDeliveryCard(order: Order) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    order.restaurantName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "৳${order.totalPrice}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            InfoRow(
+                icon = Icons.Default.Storefront,
+                title = "PICKED UP FROM",
+                primaryText = order.restaurantName
+            )
+            InfoRow(
+                icon = Icons.Default.Home,
+                title = "DELIVERED TO",
+                primaryText = order.userName,
+                secondaryText = order.fullAddress
+            )
+            InfoRow(
+                icon = Icons.Default.Phone,
+                title = "CUSTOMER CONTACT",
+                primaryText = order.userPhone
+            )
+
+            Divider()
+
+            Text("Items:", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Column(modifier = Modifier.padding(start = 16.dp)) {
+                order.items.forEach { item ->
+                    Text("• ${item["quantity"]} x ${item["itemName"]}")
+                }
             }
-            Text(
-                "Delivered to: ${order.userName}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                "Address: ${order.fullAddress}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Divider(modifier = Modifier.padding(vertical = 4.dp))
+
+            Divider()
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Order Total:", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("৳${order.totalPrice}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
+
+            Divider(modifier = Modifier.padding(vertical = 4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Order ID: ${order.id}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-                Text(
-                    sdf.format(order.createdAt.toDate()),
+                    "Delivered on ${sdf.format(order.createdAt.toDate())}",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
@@ -143,3 +156,26 @@ fun CompletedDeliveryCard(order: Order) {
         }
     }
 }
+
+@Composable
+fun InfoRow(icon: ImageVector, title: String, primaryText: String, secondaryText: String? = null) {
+    Row(verticalAlignment = Alignment.Top) {
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.width(16.dp))
+        Column {
+            Text(title, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+            Text(primaryText, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            if (secondaryText != null) {
+                Text(secondaryText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+

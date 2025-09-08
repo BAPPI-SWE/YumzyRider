@@ -1,5 +1,6 @@
 package com.yumzy.rider.features.history
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.ktx.auth
@@ -31,21 +33,68 @@ fun DeliveryHistoryScreen(onBackClicked: () -> Unit) {
     var completedOrders by remember { mutableStateOf<List<Order>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var searchText by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf<Long?>(null) }
+    var endDate by remember { mutableStateOf<Long?>(null) }
+    val context = LocalContext.current
 
-    val filteredOrders by remember(searchText, completedOrders) {
+    fun showDatePicker(onDateSelected: (Long) -> Unit) {
+        val calendar = Calendar.getInstance()
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                calendar.set(year, month, dayOfMonth)
+                onDateSelected(calendar.timeInMillis)
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
+    val filteredOrders by remember(searchText, completedOrders, startDate, endDate) {
         derivedStateOf {
-            if (searchText.isBlank()) {
-                completedOrders
-            } else {
-                completedOrders.filter { order ->
+            val calendar = Calendar.getInstance()
+
+            val startMillis = startDate?.let {
+                calendar.timeInMillis = it
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                calendar.timeInMillis
+            }
+
+            val endMillis = endDate?.let {
+                calendar.timeInMillis = it
+                calendar.set(Calendar.HOUR_OF_DAY, 23)
+                calendar.set(Calendar.MINUTE, 59)
+                calendar.set(Calendar.SECOND, 59)
+                calendar.set(Calendar.MILLISECOND, 999)
+                calendar.timeInMillis
+            }
+
+            var orders = completedOrders
+
+            if (startMillis != null) {
+                orders = orders.filter { it.createdAt.toDate().time >= startMillis }
+            }
+            if (endMillis != null) {
+                orders = orders.filter { it.createdAt.toDate().time <= endMillis }
+            }
+
+            if (searchText.isNotBlank()) {
+                orders.filter { order ->
                     order.userName.contains(searchText, ignoreCase = true) ||
                             order.userPhone.contains(searchText, ignoreCase = true) ||
                             order.fullAddress.contains(searchText, ignoreCase = true) ||
                             order.restaurantName.contains(searchText, ignoreCase = true)
                 }
+            } else {
+                orders
             }
         }
     }
+
 
     // This effect fetches the delivered orders for the current rider from Firestore
     LaunchedEffect(key1 = Unit) {
@@ -95,6 +144,25 @@ fun DeliveryHistoryScreen(onBackClicked: () -> Unit) {
                 placeholder = { Text("Search by name, phone, address...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon") }
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(onClick = { showDatePicker { startDate = it } }, modifier = Modifier.weight(1f)) {
+                    Text(startDate?.let { SimpleDateFormat("dd MMM yy", Locale.getDefault()).format(Date(it)) } ?: "Start Date")
+                }
+                Button(onClick = { showDatePicker { endDate = it } }, modifier = Modifier.weight(1f)) {
+                    Text(endDate?.let { SimpleDateFormat("dd MMM yy", Locale.getDefault()).format(Date(it)) } ?: "End Date")
+                }
+                TextButton(onClick = {
+                    startDate = null
+                    endDate = null
+                }) {
+                    Text("Clear")
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
             if (isLoading) {
@@ -103,11 +171,15 @@ fun DeliveryHistoryScreen(onBackClicked: () -> Unit) {
                 }
             } else if (filteredOrders.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    val emptyText = if (searchText.isBlank()) "You have no completed deliveries yet." else "No deliveries found for \"$searchText\""
+                    val emptyText = when {
+                        searchText.isNotBlank() -> "No deliveries found for \"$searchText\""
+                        startDate != null || endDate != null -> "No deliveries found in the selected date range."
+                        else -> "You have no completed deliveries yet."
+                    }
                     Text(emptyText, color = Color.Gray)
                 }
             } else {
-                if (searchText.isNotBlank()) {
+                if (searchText.isNotBlank() || startDate != null || endDate != null) {
                     Text(
                         text = "Found ${filteredOrders.size} deliveries",
                         style = MaterialTheme.typography.bodyMedium,

@@ -23,6 +23,7 @@ import com.google.firebase.ktx.Firebase
 import com.yumzy.rider.auth.AuthScreen
 import com.yumzy.rider.auth.AuthViewModel
 import com.yumzy.rider.auth.GoogleAuthUiClient
+import com.yumzy.rider.features.history.DeliveryHistoryScreen
 import com.yumzy.rider.features.profile.RiderAccountScreen
 import com.yumzy.rider.features.profile.RiderEditProfileScreen
 import com.yumzy.rider.navigation.MainScreen
@@ -146,6 +147,10 @@ class MainActivity : ComponentActivity() {
                             },
                             onNavigateToEditProfile = {
                                 navController.navigate("edit_profile")
+                            },
+                            // Add the new navigation action for the history screen
+                            onNavigateToHistory = {
+                                navController.navigate("delivery_history")
                             }
                         )
                     }
@@ -171,6 +176,7 @@ class MainActivity : ComponentActivity() {
                     composable("account") {
                         RiderAccountScreen(
                             onNavigateToEditProfile = { navController.navigate("edit_profile") },
+                            onNavigateToHistory = { navController.navigate("delivery_history") },
                             onBackClicked = { navController.popBackStack() },
                             onSignOut = {
                                 lifecycleScope.launch {
@@ -181,6 +187,10 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         )
+                    }
+                    // New composable route for the history screen
+                    composable("delivery_history") {
+                        DeliveryHistoryScreen(onBackClicked = { navController.popBackStack() })
                     }
                 }
             }

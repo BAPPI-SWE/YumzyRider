@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,8 +24,9 @@ import com.google.firebase.ktx.Firebase
 @Composable
 fun RiderAccountScreen(
     onNavigateToEditProfile: () -> Unit,
+    onNavigateToHistory: () -> Unit, // New parameter for navigation
     onSignOut: () -> Unit,
-    onBackClicked: () -> Unit // This parameter must be here
+    onBackClicked: () -> Unit
 ) {
     val currentUser = Firebase.auth.currentUser
 
@@ -33,7 +35,7 @@ fun RiderAccountScreen(
             TopAppBar(
                 title = { Text("My Account") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClicked) { // And used here
+                    IconButton(onClick = onBackClicked) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -60,9 +62,12 @@ fun RiderAccountScreen(
 
             Spacer(Modifier.weight(1f))
 
+            // Edit Profile Button
             Button(
                 onClick = onNavigateToEditProfile,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(Icons.Default.Edit, contentDescription = null)
@@ -70,9 +75,27 @@ fun RiderAccountScreen(
                 Text("Edit Profile")
             }
             Spacer(Modifier.height(16.dp))
+
+            // Delivery History Button (New)
+            Button(
+                onClick = onNavigateToHistory,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.History, contentDescription = "Delivery History")
+                Spacer(Modifier.width(8.dp))
+                Text("Delivery History")
+            }
+            Spacer(Modifier.height(16.dp))
+
+            // Sign Out Button
             OutlinedButton(
                 onClick = onSignOut,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)

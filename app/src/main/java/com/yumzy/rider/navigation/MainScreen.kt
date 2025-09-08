@@ -31,6 +31,7 @@ fun MainScreen(
     onAcceptOrder: (orderId: String) -> Unit,
     onUpdateOrderStatus: (orderId: String, newStatus: String) -> Unit,
     onNavigateToEditProfile: () -> Unit,
+    onNavigateToHistory: () -> Unit, // New parameter
     onSignOut: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -72,6 +73,7 @@ fun MainScreen(
             composable(Screen.Account.route) {
                 RiderAccountScreen(
                     onNavigateToEditProfile = onNavigateToEditProfile,
+                    onNavigateToHistory = onNavigateToHistory, // Pass the lambda here
                     onSignOut = onSignOut,
                     onBackClicked = { /* This screen is a main tab, no back action needed */ }
                 )

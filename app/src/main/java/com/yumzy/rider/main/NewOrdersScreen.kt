@@ -143,8 +143,17 @@ fun NewOrdersScreen(onAcceptOrder: (orderId: String) -> Unit) {
         if (!isAvailable) {
             Text("You are offline. Go online to see new orders.", color = Color.Gray)
         } else if (filteredOrders.isEmpty()) {
-            Text("No new orders right now.", color = Color.Gray)
+            val emptyText = if (searchText.isBlank()) "No new orders right now." else "No orders found for \"$searchText\""
+            Text(emptyText, color = Color.Gray)
         } else {
+            if (searchText.isNotBlank()) {
+                Text(
+                    text = "Found ${filteredOrders.size} orders",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(filteredOrders) { order ->
                     OrderRequestCard(order = order, onAccept = { onAcceptOrder(order.id) })
@@ -218,3 +227,4 @@ fun OrderRequestCard(order: OrderRequest, onAccept: () -> Unit) {
         }
     }
 }
+

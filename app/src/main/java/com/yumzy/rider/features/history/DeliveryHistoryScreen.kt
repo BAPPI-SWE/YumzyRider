@@ -103,9 +103,18 @@ fun DeliveryHistoryScreen(onBackClicked: () -> Unit) {
                 }
             } else if (filteredOrders.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("You have no completed deliveries matching your search.", color = Color.Gray)
+                    val emptyText = if (searchText.isBlank()) "You have no completed deliveries yet." else "No deliveries found for \"$searchText\""
+                    Text(emptyText, color = Color.Gray)
                 }
             } else {
+                if (searchText.isNotBlank()) {
+                    Text(
+                        text = "Found ${filteredOrders.size} deliveries",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(filteredOrders) { order ->
                         CompletedDeliveryCard(order = order)
@@ -205,3 +214,4 @@ fun InfoRow(icon: ImageVector, title: String, primaryText: String, secondaryText
         }
     }
 }
+

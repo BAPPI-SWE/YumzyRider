@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,6 +51,22 @@ fun NewOrdersScreen(onAcceptOrder: (orderId: String) -> Unit) {
     var availableOrders by remember { mutableStateOf<List<OrderRequest>>(emptyList()) }
     var isAvailable by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
+    var searchText by remember { mutableStateOf("") }
+
+    val filteredOrders by remember(searchText, availableOrders) {
+        derivedStateOf {
+            if (searchText.isBlank()) {
+                availableOrders
+            } else {
+                availableOrders.filter { order ->
+                    order.userName.contains(searchText, ignoreCase = true) ||
+                            order.userPhone.contains(searchText, ignoreCase = true) ||
+                            order.fullAddress.contains(searchText, ignoreCase = true) ||
+                            order.restaurantName.contains(searchText, ignoreCase = true)
+                }
+            }
+        }
+    }
 
     LaunchedEffect(key1 = Unit) {
         val riderId = Firebase.auth.currentUser?.uid ?: return@LaunchedEffect
@@ -112,15 +129,24 @@ fun NewOrdersScreen(onAcceptOrder: (orderId: String) -> Unit) {
             }
         }
 
+        OutlinedTextField(
+            value = searchText,
+            onValueChange = { searchText = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Search Orders") },
+            placeholder = { Text("Search by name, phone, address...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon") }
+        )
+
         Text("Available Deliveries", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
 
         if (!isAvailable) {
             Text("You are offline. Go online to see new orders.", color = Color.Gray)
-        } else if (availableOrders.isEmpty()) {
+        } else if (filteredOrders.isEmpty()) {
             Text("No new orders right now.", color = Color.Gray)
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(availableOrders) { order ->
+                items(filteredOrders) { order ->
                     OrderRequestCard(order = order, onAccept = { onAcceptOrder(order.id) })
                 }
             }

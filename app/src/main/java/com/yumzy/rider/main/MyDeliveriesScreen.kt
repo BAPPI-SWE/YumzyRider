@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -43,6 +44,22 @@ data class Order(
 fun MyDeliveriesScreen(onUpdateOrderStatus: (orderId: String, newStatus: String) -> Unit) {
     var activeOrders by remember { mutableStateOf<List<Order>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var searchText by remember { mutableStateOf("") }
+
+    val filteredOrders by remember(searchText, activeOrders) {
+        derivedStateOf {
+            if (searchText.isBlank()) {
+                activeOrders
+            } else {
+                activeOrders.filter { order ->
+                    order.userName.contains(searchText, ignoreCase = true) ||
+                            order.userPhone.contains(searchText, ignoreCase = true) ||
+                            order.fullAddress.contains(searchText, ignoreCase = true) ||
+                            order.restaurantName.contains(searchText, ignoreCase = true)
+                }
+            }
+        }
+    }
 
     LaunchedEffect(key1 = Unit) {
         val riderId = Firebase.auth.currentUser?.uid ?: return@LaunchedEffect
@@ -67,13 +84,23 @@ fun MyDeliveriesScreen(onUpdateOrderStatus: (orderId: String, newStatus: String)
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("My Active Deliveries", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+
+        OutlinedTextField(
+            value = searchText,
+            onValueChange = { searchText = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Search Active Deliveries") },
+            placeholder = { Text("Search by name, phone, address...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon") }
+        )
+
         if (isLoading) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        } else if (activeOrders.isEmpty()) {
-            Text("You have no active deliveries.", color = Color.Gray)
+        } else if (filteredOrders.isEmpty()) {
+            Text("You have no active deliveries matching your search.", color = Color.Gray)
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(activeOrders) { order ->
+                items(filteredOrders) { order ->
                     ActiveDeliveryCard(order = order, onStatusUpdate = onUpdateOrderStatus)
                 }
             }

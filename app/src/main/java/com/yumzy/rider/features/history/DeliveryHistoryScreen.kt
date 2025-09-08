@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,6 +30,22 @@ import java.util.*
 fun DeliveryHistoryScreen(onBackClicked: () -> Unit) {
     var completedOrders by remember { mutableStateOf<List<Order>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var searchText by remember { mutableStateOf("") }
+
+    val filteredOrders by remember(searchText, completedOrders) {
+        derivedStateOf {
+            if (searchText.isBlank()) {
+                completedOrders
+            } else {
+                completedOrders.filter { order ->
+                    order.userName.contains(searchText, ignoreCase = true) ||
+                            order.userPhone.contains(searchText, ignoreCase = true) ||
+                            order.fullAddress.contains(searchText, ignoreCase = true) ||
+                            order.restaurantName.contains(searchText, ignoreCase = true)
+                }
+            }
+        }
+    }
 
     // This effect fetches the delivered orders for the current rider from Firestore
     LaunchedEffect(key1 = Unit) {
@@ -70,17 +87,27 @@ fun DeliveryHistoryScreen(onBackClicked: () -> Unit) {
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Search History") },
+                placeholder = { Text("Search by name, phone, address...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon") }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
             if (isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-            } else if (completedOrders.isEmpty()) {
+            } else if (filteredOrders.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("You have no completed deliveries yet.", color = Color.Gray)
+                    Text("You have no completed deliveries matching your search.", color = Color.Gray)
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(completedOrders) { order ->
+                    items(filteredOrders) { order ->
                         CompletedDeliveryCard(order = order)
                     }
                 }
@@ -178,4 +205,3 @@ fun InfoRow(icon: ImageVector, title: String, primaryText: String, secondaryText
         }
     }
 }
-

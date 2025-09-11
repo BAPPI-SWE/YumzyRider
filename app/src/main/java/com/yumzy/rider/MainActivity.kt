@@ -1,6 +1,7 @@
 package com.yumzy.rider
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -28,7 +29,9 @@ import com.yumzy.rider.features.profile.RiderAccountScreen
 import com.yumzy.rider.features.profile.RiderEditProfileScreen
 import com.yumzy.rider.navigation.MainScreen
 import com.yumzy.rider.ui.theme.YumzyRiderTheme
+import com.yumzy.rider.notifications.OneSignalNotificationHelper
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class MainActivity : ComponentActivity() {
 
@@ -119,23 +122,86 @@ class MainActivity : ComponentActivity() {
                                 val riderId = Firebase.auth.currentUser?.uid
                                 val riderName = Firebase.auth.currentUser?.displayName
                                 if (riderId != null) {
-                                    Firebase.firestore.collection("orders").document(orderId)
-                                        .update(mapOf(
-                                            "orderStatus" to "Accepted",
-                                            "riderId" to riderId,
-                                            "riderName" to riderName
-                                        ))
-                                        .addOnSuccessListener {
+                                    lifecycleScope.launch {
+                                        try {
+                                            Log.d("OrderDebug", "Attempting to accept order $orderId")
+                                            // Fetch order to get userId and restaurantName
+                                            val orderDoc = Firebase.firestore.collection("orders").document(orderId)
+                                                .get().await()
+                                            val userId = orderDoc.getString("userId")
+                                            val restaurantName = orderDoc.getString("restaurantName") ?: "Unknown Restaurant"
+                                            Log.d("OrderDebug", "Fetched order data - userId: $userId, restaurantName: $restaurantName")
+
+                                            // Update order status
+                                            Firebase.firestore.collection("orders").document(orderId)
+                                                .update(
+                                                    mapOf(
+                                                        "orderStatus" to "Accepted",
+                                                        "riderId" to riderId,
+                                                        "riderName" to riderName
+                                                    )
+                                                ).await()
+                                            Log.d("OrderDebug", "Order $orderId updated to Accepted")
+
                                             Toast.makeText(applicationContext, "Order Accepted!", Toast.LENGTH_SHORT).show()
+
+                                            // Send notification to user
+                                            if (userId != null) {
+                                                Log.d("OrderDebug", "Sending notification for userId: $userId, orderId: $orderId, status: Accepted")
+                                                OneSignalNotificationHelper.sendOrderStatusNotification(
+                                                    userId = userId,
+                                                    orderId = orderId,
+                                                    newStatus = "Accepted",
+                                                    restaurantName = restaurantName
+                                                )
+                                                Log.d("OrderDebug", "Notification call completed for order $orderId")
+                                            } else {
+                                                Log.w("OrderDebug", "No userId found for order $orderId")
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.e("OrderDebug", "Failed to accept order $orderId: ${e.message}", e)
+                                            Toast.makeText(applicationContext, "Failed to accept order: ${e.message}", Toast.LENGTH_SHORT).show()
                                         }
+                                    }
                                 }
                             },
                             onUpdateOrderStatus = { orderId, newStatus ->
-                                Firebase.firestore.collection("orders").document(orderId)
-                                    .update("orderStatus", newStatus)
-                                    .addOnSuccessListener {
+                                lifecycleScope.launch {
+                                    try {
+                                        Log.d("OrderDebug", "Attempting to update order $orderId to status $newStatus")
+                                        // Fetch order to get userId and restaurantName
+                                        val orderDoc = Firebase.firestore.collection("orders").document(orderId)
+                                            .get().await()
+                                        val userId = orderDoc.getString("userId")
+                                        val restaurantName = orderDoc.getString("restaurantName") ?: "Unknown Restaurant"
+                                        Log.d("OrderDebug", "Fetched order data - userId: $userId, restaurantName: $restaurantName")
+
+                                        // Update order status
+                                        Firebase.firestore.collection("orders").document(orderId)
+                                            .update("orderStatus", newStatus)
+                                            .await()
+                                        Log.d("OrderDebug", "Order $orderId updated to $newStatus")
+
                                         Toast.makeText(applicationContext, "Order marked as $newStatus", Toast.LENGTH_SHORT).show()
+
+                                        // Send notification to user
+                                        if (userId != null) {
+                                            Log.d("OrderDebug", "Sending notification for userId: $userId, orderId: $orderId, status: $newStatus")
+                                            OneSignalNotificationHelper.sendOrderStatusNotification(
+                                                userId = userId,
+                                                orderId = orderId,
+                                                newStatus = newStatus,
+                                                restaurantName = restaurantName
+                                            )
+                                            Log.d("OrderDebug", "Notification call completed for order $orderId")
+                                        } else {
+                                            Log.w("OrderDebug", "No userId found for order $orderId")
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("OrderDebug", "Failed to update order $orderId: ${e.message}", e)
+                                        Toast.makeText(applicationContext, "Failed to update order status: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
+                                }
                             },
                             onSignOut = {
                                 lifecycleScope.launch {
@@ -148,7 +214,6 @@ class MainActivity : ComponentActivity() {
                             onNavigateToEditProfile = {
                                 navController.navigate("edit_profile")
                             },
-                            // Add the new navigation action for the history screen
                             onNavigateToHistory = {
                                 navController.navigate("delivery_history")
                             }
@@ -188,7 +253,6 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-                    // New composable route for the history screen
                     composable("delivery_history") {
                         DeliveryHistoryScreen(onBackClicked = { navController.popBackStack() })
                     }

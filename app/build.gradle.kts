@@ -51,7 +51,7 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.13.1") // Note: Updated some versions for stability
+    implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.3")
     implementation("androidx.activity:activity-compose:1.9.0")
     implementation(platform("androidx.compose:compose-bom:2024.06.00"))
@@ -74,17 +74,21 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
-    // ADD THIS LINE TO INCLUDE THE FULL ICON LIBRARY
+    // Icon library
     implementation("androidx.compose.material:material-icons-extended")
-    // ADD THIS FOR NAVIGATION
+    // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
-    // ADD THIS FOR GOOGLE SIGN-IN UI
+    // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
-
-    // ADD THESE TWO LINES
+    // Lifecycle for Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.3")
-
-    // Add this line for Coil Image Loading
+    // Coil for Image Loading
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // Add OkHttp for OneSignal API calls
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Add OneSignal dependency here
+    implementation("com.onesignal:OneSignal:[5.0.0, 5.99.99]")
 }

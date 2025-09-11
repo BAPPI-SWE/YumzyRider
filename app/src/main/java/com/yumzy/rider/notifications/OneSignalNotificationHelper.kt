@@ -17,10 +17,16 @@ object OneSignalNotificationHelper {
     private const val ONE_SIGNAL_APP_ID = "dabb9362-80ed-4e54-be89-32ffc7dbf383"
     // Use your REST API Key from OneSignal dashboard (Settings → Keys & IDs)
     private const val ONE_SIGNAL_REST_API_KEY = "os_v2_app_3k5zgyua5vhfjpujgl74pw7tqonyuq6vbuhuicmwd4v5m3xf3nt32dn5kxntcjqns5a562jfe7f52bl62ttrnhwbledfbnh6wl6c5tq"
-    private const val ONE_SIGNAL_API_URL = "https://onesignal.com/api/v1/notifications"  // Keep v1
+    private const val ONE_SIGNAL_API_URL = "https://onesignal.com/api/v1/notifications"
     private val client = OkHttpClient()
 
-    suspend fun sendOrderStatusNotification(userId: String, orderId: String, newStatus: String, restaurantName: String) {
+    suspend fun sendOrderStatusNotification(
+        userId: String,
+        orderId: String,
+        newStatus: String,
+        restaurantName: String,
+        orderAmount: Double? = null
+    ) {
         Log.d("OneSignal", "Starting notification process for userId: $userId, orderId: $orderId, status: $newStatus")
 
         try {
@@ -35,12 +41,39 @@ object OneSignalNotificationHelper {
                 return
             }
 
+            // Custom messages based on status
+            val headingText: String
+            val contentText: String
+            when (newStatus) {
+                "Accepted" -> {
+                    headingText = "Your Order Accepted😍"
+                    contentText = "Your order from $restaurantName is now Accepted. You will get your Food soon😋"
+                }
+                "On the way" -> {
+                    headingText = "Your Order On the way🚴"
+                    val amountText = if (orderAmount != null && orderAmount > 0) {
+                        "Please prepare ৳${orderAmount.toInt()}💰"
+                    } else {
+                        "Please prepare cash"
+                    }
+                    contentText = "Your order from $restaurantName is now On the way. $amountText"
+                }
+                "Delivered" -> {
+                    headingText = "Your Order Delivered✅"
+                    contentText = "Your order from $restaurantName is now Delivered. Thanks for Using Yumzy🥰"
+                }
+                else -> {
+                    headingText = "Order Status Update"
+                    contentText = "Your order from $restaurantName is now $newStatus."
+                }
+            }
+
             Log.d("OneSignal", "Creating notification payload")
             val payload = JSONObject().apply {
                 put("app_id", ONE_SIGNAL_APP_ID)
                 put("include_player_ids", JSONArray().put(playerId))
-                put("headings", JSONObject().put("en", "Order Status Update"))
-                put("contents", JSONObject().put("en", "Your order from $restaurantName (ID: $orderId) is now $newStatus."))
+                put("headings", JSONObject().put("en", headingText))
+                put("contents", JSONObject().put("en", contentText))
                 put("data", JSONObject().put("orderId", orderId))
             }
             Log.d("OneSignal", "Payload created: $payload")
@@ -50,7 +83,7 @@ object OneSignalNotificationHelper {
             Log.d("OneSignal", "Request Headers: Authorization=Basic $ONE_SIGNAL_REST_API_KEY")
             val request = Request.Builder()
                 .url(ONE_SIGNAL_API_URL)
-                .addHeader("Authorization", "Basic $ONE_SIGNAL_REST_API_KEY") // ✅ fixed
+                .addHeader("Authorization", "Basic $ONE_SIGNAL_REST_API_KEY")
                 .addHeader("Content-Type", "application/json")
                 .post(requestBody)
                 .build()

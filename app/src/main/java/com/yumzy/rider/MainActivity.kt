@@ -125,12 +125,13 @@ class MainActivity : ComponentActivity() {
                                     lifecycleScope.launch {
                                         try {
                                             Log.d("OrderDebug", "Attempting to accept order $orderId")
-                                            // Fetch order to get userId and restaurantName
+                                            // Fetch order to get userId, restaurantName and amount
                                             val orderDoc = Firebase.firestore.collection("orders").document(orderId)
                                                 .get().await()
                                             val userId = orderDoc.getString("userId")
                                             val restaurantName = orderDoc.getString("restaurantName") ?: "Unknown Restaurant"
-                                            Log.d("OrderDebug", "Fetched order data - userId: $userId, restaurantName: $restaurantName")
+                                            val orderAmount = orderDoc.getDouble("totalPrice") ?: 0.0
+                                            Log.d("OrderDebug", "Fetched order data - userId: $userId, restaurantName: $restaurantName, amount: $orderAmount")
 
                                             // Update order status
                                             Firebase.firestore.collection("orders").document(orderId)
@@ -152,7 +153,8 @@ class MainActivity : ComponentActivity() {
                                                     userId = userId,
                                                     orderId = orderId,
                                                     newStatus = "Accepted",
-                                                    restaurantName = restaurantName
+                                                    restaurantName = restaurantName,
+                                                    orderAmount = orderAmount
                                                 )
                                                 Log.d("OrderDebug", "Notification call completed for order $orderId")
                                             } else {
@@ -169,12 +171,13 @@ class MainActivity : ComponentActivity() {
                                 lifecycleScope.launch {
                                     try {
                                         Log.d("OrderDebug", "Attempting to update order $orderId to status $newStatus")
-                                        // Fetch order to get userId and restaurantName
+                                        // Fetch order to get userId, restaurantName and amount
                                         val orderDoc = Firebase.firestore.collection("orders").document(orderId)
                                             .get().await()
                                         val userId = orderDoc.getString("userId")
                                         val restaurantName = orderDoc.getString("restaurantName") ?: "Unknown Restaurant"
-                                        Log.d("OrderDebug", "Fetched order data - userId: $userId, restaurantName: $restaurantName")
+                                        val orderAmount = orderDoc.getDouble("totalPrice") ?: 0.0
+                                        Log.d("OrderDebug", "Fetched order data - userId: $userId, restaurantName: $restaurantName, amount: $orderAmount")
 
                                         // Update order status
                                         Firebase.firestore.collection("orders").document(orderId)
@@ -191,7 +194,8 @@ class MainActivity : ComponentActivity() {
                                                 userId = userId,
                                                 orderId = orderId,
                                                 newStatus = newStatus,
-                                                restaurantName = restaurantName
+                                                restaurantName = restaurantName,
+                                                orderAmount = orderAmount
                                             )
                                             Log.d("OrderDebug", "Notification call completed for order $orderId")
                                         } else {

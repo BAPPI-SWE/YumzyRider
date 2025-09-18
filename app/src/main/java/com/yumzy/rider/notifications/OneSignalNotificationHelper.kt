@@ -47,20 +47,20 @@ object OneSignalNotificationHelper {
             when (newStatus) {
                 "Accepted" -> {
                     headingText = "Your Order Accepted😍"
-                    contentText = "Your order from $restaurantName is now Accepted. You will get your Food soon😋"
+                    contentText = "Your order from $restaurantName is now Accepted.\nYou will get your Food Soon 😋"
                 }
                 "On the way" -> {
-                    headingText = "Your Order On the way🚴"
+                    headingText = "Your Order On-the-way 🚴"
                     val amountText = if (orderAmount != null && orderAmount > 0) {
-                        "Please prepare ৳${orderAmount.toInt()}💰"
+                        "👉 Please prepare ৳${orderAmount.toInt()} 💰"
                     } else {
                         "Please prepare cash"
                     }
-                    contentText = "Your order from $restaurantName is now On the way. $amountText"
+                    contentText = "Your order from $restaurantName is now On the way.\n $amountText"
                 }
                 "Delivered" -> {
-                    headingText = "Your Order Delivered✅"
-                    contentText = "Your order from $restaurantName is now Delivered. Thanks for Using Yumzy🥰"
+                    headingText = "Your Order Delivered ✅ "
+                    contentText = "Your order from $restaurantName is now Delivered.\nThanks for Using Yumzy💗"
                 }
                 else -> {
                     headingText = "Order Status Update"

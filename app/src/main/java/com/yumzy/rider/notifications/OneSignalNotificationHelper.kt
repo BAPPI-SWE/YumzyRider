@@ -46,7 +46,7 @@ object OneSignalNotificationHelper {
             val contentText: String
             when (newStatus) {
                 "Accepted" -> {
-                    headingText = "Your Order Accepted😍"
+                    headingText = "Your Order Accepted 😍"
                     contentText = "Your order from $restaurantName is now Accepted.\nYou will get your Food Soon 😋"
                 }
                 "On the way" -> {
@@ -59,7 +59,7 @@ object OneSignalNotificationHelper {
                     contentText = "Your order from $restaurantName is now On the way.\n $amountText"
                 }
                 "Delivered" -> {
-                    headingText = "Your Order Delivered ✅ "
+                    headingText = "Your Order Delivered 🥳"
                     contentText = "Your order from $restaurantName is now Delivered.\nThanks for Using Yumzy💗"
                 }
                 else -> {

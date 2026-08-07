@@ -40,6 +40,7 @@ data class Order(
     val totalPrice: Double = 0.0,
     val payment: String = "Online",
     val note: String = "",
+    val userNote: String = "", // Optional note the customer added at checkout
     val items: List<Map<String, Any>> = emptyList(),
     val createdAt: Timestamp = Timestamp.now()
 )
@@ -290,6 +291,16 @@ fun ActiveDeliveryCard(order: Order, onStatusUpdate: (orderId: String, newStatus
                     }
                 }
             }
+
+            if (order.userNote.isNotBlank()) {
+                Text(
+                    "Customer Note: ${order.userNote}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFE65100),
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                )
+            }
+
             Divider()
             Row(
                 modifier = Modifier.fillMaxWidth(),

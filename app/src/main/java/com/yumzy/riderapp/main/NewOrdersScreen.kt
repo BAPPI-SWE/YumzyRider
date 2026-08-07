@@ -44,6 +44,7 @@ data class OrderRequest(
     val userBaseLocation: String = "",
     val payment: String = "Online",
     val note: String = "",
+    val userNote: String = "", // Optional note the customer added at checkout
     val createdAt: Timestamp = Timestamp.now()
 )
 
@@ -308,6 +309,16 @@ fun OrderRequestCard(
                     }
                 }
             }
+
+            if (order.userNote.isNotBlank()) {
+                Text(
+                    "Customer Note: ${order.userNote}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFE65100),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
             Divider()
 
             // Payment Status Display
